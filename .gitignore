@@ -1,0 +1,6 @@
+# make ignores
+build
+bin
+
+# environment ignores - VS Code
+.vscode/*
