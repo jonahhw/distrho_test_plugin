@@ -20,7 +20,7 @@
    Number of audio inputs the plugin has.
    @note This macro is required.
  */
-#define DISTRHO_PLUGIN_NUM_INPUTS 2
+#define DISTRHO_PLUGIN_NUM_INPUTS 0
 
 /**
    Number of audio outputs the plugin has.
@@ -33,7 +33,7 @@
    TODO describe what a URI is
    @note This macro is required.
  */
-#define DISTRHO_PLUGIN_URI "urn:distrho:name"
+#define DISTRHO_PLUGIN_URI "https://github.com/jonahhw/distrho_test_plugin"
 
 /**
    Whether the plugin has a custom UI.

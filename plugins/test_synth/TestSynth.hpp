@@ -19,6 +19,7 @@ PERFORMANCE OF THIS SOFTWARE.
 */
 
 #include "../../DPF/distrho/DistrhoPlugin.hpp"
+#include <unordered_map>
 
 class TestSynth : public DISTRHO::Plugin {
 public:
@@ -26,7 +27,6 @@ public:
 
 protected:
 // information
-
 // Get the plugin label, consisten of _, a-z, A-Z and 0-9 characters
 virtual const char* getLabel() const override { return "TestSynth"; }
 
@@ -43,7 +43,44 @@ virtual int64_t getUniqueId() const override { return d_cconst('T', 'e', 's', 't
 virtual uint32_t getVersion() const override; // set in cpp file as it needs to be modified often
 
 // Processing
-virtual void        run(const float** inputs, float** outputs, uint32_t frames, const DISTRHO::MidiEvent* midiEvents, uint32_t midiEventCount) override;
+virtual void run(const float** inputs, float** outputs, uint32_t frames, const DISTRHO::MidiEvent* midiEvents, uint32_t midiEventCount) override;
 
+// misc
+virtual void activate() override;
+// virtual void deactivate () override;
+virtual void sampleRateChanged (double newSampleRate) override; 	
+
+// data types
+struct NoteInfo {
+    // uint8_t note_number;
+    uint8_t velocity;
+
+    float frequency;
+    int32_t frames_since_pressed;
+};
+struct MIDI_Message_Type {enum MIDI_message_type : uint8_t {
+    note_off             = 0x00,
+    note_on              = 0x10,
+    polyphonic_aftertouch= 0x20,
+    control_change       = 0x30, // also includes channel mode messages
+    program_change       = 0x40,
+    channel_aftertouch   = 0x50,
+    pitch_bend           = 0x60,
+    system_common        = 0x70,
+};};
+
+
+// processing (internal)
+void process_midi_event(const DISTRHO::MidiEvent& midi_event);
+
+float get_osc_value(float frequency, double time, float rel_velocity);
+float get_frequency_from_note_number(uint8_t note_number);
+
+// properties
+double sample_period;
+uint64_t frames_since_start;
+
+std::unordered_map<uint8_t, NoteInfo> active_notes; // Information about currently active notes, indexed by the note number
+typedef std::unordered_map<uint8_t, NoteInfo>::iterator Active_Notes_it;
 };
 
