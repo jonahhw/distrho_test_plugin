@@ -18,7 +18,6 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 */
 
-
 #include "TestSynth.hpp"
 #include <cmath>
 
@@ -41,6 +40,16 @@ void TestSynth::activate() {
     if (ENABLE_LOGGING) printf("C++ version: %ld\n", __cplusplus);
 
     frames_since_start = 0;
+
+    frequency_coefficient = 1.f;
+}
+
+void TestSynth::update_frequency_coefficient(uint16_t new_frequency_value) {
+    // Pitch bend has 14 bits of information, so the maximum possible value is 0x3fff, or 16383
+    // This leaves us with a center value of 8192.
+    const uint16_t mid_value = 0x2000;
+    frequency_coefficient = float(new_frequency_value - mid_value)/mid_value;
+    frequency_coefficient = pow(2, (max_frequency_coefficient_st/12)*frequency_coefficient);
 }
 
 void TestSynth::sampleRateChanged (double newSampleRate) {
@@ -79,7 +88,7 @@ void TestSynth::run(const float** /* inputs*/, float** outputs, uint32_t frames,
             float rel_velocity = notes_it->second.velocity/127.f;
             
             if (frames_since_pressed >= 0) {
-                outL[f_idx] += 0.5*get_osc_value(frequency, frames_since_pressed*sample_period, rel_velocity);
+                outL[f_idx] += 0.5*rel_velocity*get_osc_value(frequency, frames_since_pressed*sample_period);
             }
 
             // increment frames since pressed
@@ -113,19 +122,29 @@ void TestSynth::process_midi_event(const DISTRHO::MidiEvent& midi_event) {
         active_notes[note_number] = new_note;
     } break;
     case MIDI_Message_Type::polyphonic_aftertouch: {
+        // uint8_t note_number = midi_event.data[1] & 0x7f;
+        // uint8_t pressure = midi_event.data[2] & 0x7f;
         // no effect currently
     } break;
     case MIDI_Message_Type::control_change: {
+        // uint8_t control_number = midi_event.data[1] & 0x7f;
+        // uint8_t value = midi_event.data[2] & 0x7f;
         // no effect currently
     } break;
     case MIDI_Message_Type::program_change: {
+        // uint8_t program = midi_event.data[1] & 0x7f;
         // no effect currently
     } break;
     case MIDI_Message_Type::channel_aftertouch: {
+        // uint8_t pressure = midi_event.data[1] & 0x7f;
         // no effect currently
     } break;
     case MIDI_Message_Type::pitch_bend: {
-        // no effect currently
+        uint8_t LSB = midi_event.data[1] & 0x7f;
+        uint8_t MSB = midi_event.data[2] & 0x7f;
+        uint16_t pitch_bend = (MSB << 7) + LSB;
+
+        update_frequency_coefficient(pitch_bend);
     } break;
     case MIDI_Message_Type::system_common: {
         // no effect currently
@@ -136,8 +155,8 @@ void TestSynth::process_midi_event(const DISTRHO::MidiEvent& midi_event) {
     }
 }
 
-float TestSynth::get_osc_value(float frequency, double time, float rel_velocity) {
-    return rel_velocity*sin(2*M_PI*frequency*time);
+float TestSynth::get_osc_value(float frequency, double time) {
+    return sin(2*M_PI*frequency_coefficient*frequency*time);
 }
 
 float TestSynth::get_frequency_from_note_number(uint8_t note_number) {

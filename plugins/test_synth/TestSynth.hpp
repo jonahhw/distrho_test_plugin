@@ -48,7 +48,9 @@ virtual void run(const float** inputs, float** outputs, uint32_t frames, const D
 // misc
 virtual void activate() override;
 // virtual void deactivate () override;
-virtual void sampleRateChanged (double newSampleRate) override; 	
+virtual void sampleRateChanged (double newSampleRate) override;
+
+void update_frequency_coefficient(uint16_t new_frequency_value);
 
 // data types
 struct NoteInfo {
@@ -73,12 +75,15 @@ struct MIDI_Message_Type {enum MIDI_message_type : uint8_t {
 // processing (internal)
 void process_midi_event(const DISTRHO::MidiEvent& midi_event);
 
-float get_osc_value(float frequency, double time, float rel_velocity);
+float get_osc_value(float frequency, double time);
 float get_frequency_from_note_number(uint8_t note_number);
 
 // properties
 double sample_period;
 uint64_t frames_since_start;
+
+float frequency_coefficient;
+const float max_frequency_coefficient_st = 2; // maximum deviation from center frequency in semitones
 
 std::unordered_map<uint8_t, NoteInfo> active_notes; // Information about currently active notes, indexed by the note number
 typedef std::unordered_map<uint8_t, NoteInfo>::iterator Active_Notes_it;
