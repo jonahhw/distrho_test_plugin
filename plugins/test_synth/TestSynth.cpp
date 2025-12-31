@@ -34,14 +34,20 @@ TestSynth::TestSynth() // inherits from Plugin(uint32_t parameterCount, uint32_t
 // protected
 // misc
 void TestSynth::activate() {
-    sample_period = 1/getSampleRate();
     if (ENABLE_LOGGING) printf("Sample rate: %f. Buffer size: %u\n", getSampleRate(), getBufferSize());
-
     if (ENABLE_LOGGING) printf("C++ version: %ld\n", __cplusplus);
+
+    sample_period = 1/getSampleRate();
 
     frames_since_start = 0;
 
     frequency_coefficient = 1.f;
+
+    sin_osc = new Sine_Oscillator(0, 0.5);
+    signal_generator = Signal_Generator(sin_osc, &sample_period, &frequency_coefficient);
+}
+void TestSynth::deactivate() {
+    delete sin_osc;
 }
 
 void TestSynth::update_frequency_coefficient(uint16_t new_frequency_value) {
@@ -81,18 +87,7 @@ void TestSynth::run(const float** /* inputs*/, float** outputs, uint32_t frames,
         outL[f_idx] = 0;
 
         for (Active_Notes_it notes_it = active_notes.begin(); notes_it != active_notes.end(); notes_it++) {
-            // uint8_t note_number = notes_it->first;
-            // uint8_t velocity = notes_it->second.velocity;
-            float frequency = notes_it->second.frequency;
-            int32_t frames_since_pressed = notes_it->second.frames_since_pressed;
-            float rel_velocity = notes_it->second.velocity/127.f;
-            
-            if (frames_since_pressed >= 0) {
-                outL[f_idx] += 0.5*rel_velocity*get_osc_value(frequency, frames_since_pressed*sample_period);
-            }
-
-            // increment frames since pressed
-            notes_it->second.frames_since_pressed += 1;
+            outL[f_idx] += signal_generator.pop_time_step(notes_it->second);
         }
 
         frames_since_start += 1;
@@ -112,10 +107,7 @@ void TestSynth::process_midi_event(const DISTRHO::MidiEvent& midi_event) {
         uint8_t note_number = midi_event.data[1] & 0x7f;
         uint8_t press_velocity = midi_event.data[2] & 0x7f;
 
-        NoteInfo new_note;
-        new_note.velocity = press_velocity;
-        new_note.frequency = get_frequency_from_note_number(note_number);
-        new_note.frames_since_pressed = -midi_event.frame;
+        Note new_note = Note(note_number, press_velocity, midi_event.frame);
 
         if (ENABLE_LOGGING) printf("Note pressed! Note number: %u. Frequency: %f. frames since pressed: %d \n", note_number, new_note.frequency, new_note.frames_since_pressed);
         
@@ -154,16 +146,6 @@ void TestSynth::process_midi_event(const DISTRHO::MidiEvent& midi_event) {
         break;
     }
 }
-
-float TestSynth::get_osc_value(float frequency, double time) {
-    return sin(2*M_PI*frequency_coefficient*frequency*time);
-}
-
-float TestSynth::get_frequency_from_note_number(uint8_t note_number) {
-    return 440*pow(2, (note_number-69)/12.f);
-}
-
-
 
 // entry point for DPF plugins
 Plugin* DISTRHO::createPlugin() {

@@ -21,6 +21,8 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "../../DPF/distrho/DistrhoPlugin.hpp"
 #include <unordered_map>
 
+#include <oscillators.hpp>
+
 class TestSynth : public DISTRHO::Plugin {
 public:
     TestSynth(); // inherits from Plugin(uint32_t parameterCount, uint32_t programCount, uint32_t stateCount)
@@ -47,19 +49,11 @@ virtual void run(const float** inputs, float** outputs, uint32_t frames, const D
 
 // misc
 virtual void activate() override;
-// virtual void deactivate () override;
+virtual void deactivate() override;
 virtual void sampleRateChanged (double newSampleRate) override;
 
 void update_frequency_coefficient(uint16_t new_frequency_value);
 
-// data types
-struct NoteInfo {
-    // uint8_t note_number;
-    uint8_t velocity;
-
-    float frequency;
-    int32_t frames_since_pressed;
-};
 struct MIDI_Message_Type {enum MIDI_message_type : uint8_t {
     note_off             = 0x00,
     note_on              = 0x10,
@@ -75,9 +69,6 @@ struct MIDI_Message_Type {enum MIDI_message_type : uint8_t {
 // processing (internal)
 void process_midi_event(const DISTRHO::MidiEvent& midi_event);
 
-float get_osc_value(float frequency, double time);
-float get_frequency_from_note_number(uint8_t note_number);
-
 // properties
 double sample_period;
 uint64_t frames_since_start;
@@ -85,7 +76,10 @@ uint64_t frames_since_start;
 float frequency_coefficient;
 const float max_frequency_coefficient_st = 2; // maximum deviation from center frequency in semitones
 
-std::unordered_map<uint8_t, NoteInfo> active_notes; // Information about currently active notes, indexed by the note number
-typedef std::unordered_map<uint8_t, NoteInfo>::iterator Active_Notes_it;
+std::unordered_map<uint8_t, Note> active_notes; // Information about currently active notes, indexed by the note number
+typedef std::unordered_map<uint8_t, Note>::iterator Active_Notes_it;
+
+Signal_Generator signal_generator;
+Oscillator* sin_osc;
 };
 

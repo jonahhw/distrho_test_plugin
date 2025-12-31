@@ -11,7 +11,9 @@ NAME = test_synth
 # --------------------------------------------------------------
 # Files to build
 
-FILES_DSP = TestSynth.cpp
+FILES_DSP = \
+	TestSynth.cpp \
+	oscillators.cpp
 
 # --------------------------------------------------------------
 # Do some magic
@@ -22,7 +24,7 @@ include ../../DPF/Makefile.plugins.mk
 # Enable all possible plugin types
 
 TARGETS += jack
-TARGETS += lv2_dsp
+TARGETS += lv2
 # TARGETS += clap
 # TARGETS += vst2
 # TARGETS += vst3
